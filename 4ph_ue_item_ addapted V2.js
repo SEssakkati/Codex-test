@@ -108,71 +108,54 @@ define(["N/record", "N/search", "N/query"], (record, search, query) => {
     }
   }
 
-  function getAndReserveUniqueEAN() {
-    // Pull top 10 unused EANs and attempt to reserve one uniquely
-    const eanSearch = search.create({
+  function getEANNumber() {
+    var objResult = {};
+    var objSearch = search.create({
       type: "customrecord_4ph_ean_numbers",
       filters: [
-        ["name", "isnotempty", ""],
-        "AND",
-        ["custrecord_4ph_item", "anyof", ["@NONE@", "-1"]],
+        search.createFilter({
+          name: "name",
+          operator: search.Operator.ISNOTEMPTY,
+        }),
+        search.createFilter({
+          name: "custrecord_4ph_item",
+          operator: search.Operator.ANYOF,
+          values: ["@NONE@"],
+        }),
       ],
       columns: [search.createColumn({ name: "name", sort: search.Sort.ASC })],
     });
+    var result = objSearch.run().getRange({ start: 0, end: 1 });
 
-    let results = [];
-    if (typeof eanSearch.runPaged === "function") {
-      // Use runPaged to fetch all available EANs when supported
-      const pagedData = eanSearch.runPaged({ pageSize: 1000 });
-      for (let p = 0; p < pagedData.pageRanges.length; p++) {
-        const page = pagedData.fetch({ index: p });
-        results = page.data;
-        for (let i = 0; i < results.length; i++) {
-          const eanId = results[i].id;
-          const eanCode = results[i].getValue({ name: "name" });
-
-          try {
-            record.submitFields({
-              type: "customrecord_4ph_ean_numbers",
-              id: eanId,
-              values: { custrecord_4ph_item: "-1" },
-              options: { enableSourcing: false, ignoreMandatoryFields: true },
-            });
-            return { id: eanId, eanNumber: eanCode };
-          } catch (e) {
-            continue;
-          }
-        }
-      }
-    } else {
-      // Fallback for environments without runPaged
-      results = eanSearch.run().getRange({ start: 0, end: 1000 });
-
-      for (let i = 0; i < results.length; i++) {
-        const eanId = results[i].id;
-        const eanCode = results[i].getValue({ name: "name" });
-
-      try {
-        // Try to reserve EAN
-        record.submitFields({
-          type: "customrecord_4ph_ean_numbers",
-          id: eanId,
-          values: { custrecord_4ph_item: "-1" },
-          options: { enableSourcing: false, ignoreMandatoryFields: true },
-        });
-
-        // If successful, return the reserved EAN
-        return { id: eanId, eanNumber: eanCode };
-      } catch (e) {
-        // If submitFields fails, likely due to concurrency. Try next.
-        continue;
-      }
-    }
+    if (!!result && result.length > 0) {
+      objResult = {
+        id: result[0].id,
+        eanNumber: result[0].getValue({ name: "name" }),
+      };
     }
 
-    // If no EAN could be reserved
-    log.error("EAN Reservation Failed", "Could not reserve unique EAN");
-    return null;
+    return objResult;
+  }
+
+  function getAndReserveUniqueEAN() {
+    const ean = getEANNumber();
+    if (!ean || !ean.id) {
+      log.error("EAN Reservation Failed", "Could not reserve unique EAN");
+      return null;
+    }
+
+    try {
+      record.submitFields({
+        type: "customrecord_4ph_ean_numbers",
+        id: ean.id,
+        values: { custrecord_4ph_item: "-1" },
+        options: { enableSourcing: false, ignoreMandatoryFields: true },
+      });
+      return ean;
+    } catch (e) {
+      log.error("EAN Reservation Failed", e);
+      return null;
+    }
   }
 
   function assignItemToEANNumber(itemId, eanNumber) {
