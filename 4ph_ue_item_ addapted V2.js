@@ -61,7 +61,14 @@ define(["N/record", "N/search", "N/query"], (record, search, query) => {
         newRecItemSetActive.save({ ignoreMandatoryFields: true, enableSourcing: true });
 
         const recordId = recItem.id;
-        updateSKUNumberRecords(recordId, skuNumbers);
+        if (skuNumbers) {
+          updateSKUNumberRecords(recordId, skuNumbers);
+        } else {
+          log.audit(
+            "afterSubmit::warning",
+            "No SKU numbers were generated during the event"
+          );
+        }
         if (eanNumber) {
           assignItemToEANNumber(recordId, eanNumber);
         }
