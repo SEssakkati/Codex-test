@@ -120,11 +120,37 @@ define(["N/record", "N/search", "N/query"], (record, search, query) => {
       columns: [search.createColumn({ name: "name", sort: search.Sort.ASC })],
     });
 
-    const results = eanSearch.run().getRange({ start: 0, end: 10 });
+    let results = [];
+    if (typeof eanSearch.runPaged === "function") {
+      // Use runPaged to fetch all available EANs when supported
+      const pagedData = eanSearch.runPaged({ pageSize: 1000 });
+      for (let p = 0; p < pagedData.pageRanges.length; p++) {
+        const page = pagedData.fetch({ index: p });
+        results = page.data;
+        for (let i = 0; i < results.length; i++) {
+          const eanId = results[i].id;
+          const eanCode = results[i].getValue({ name: "name" });
 
-    for (let i = 0; i < results.length; i++) {
-      const eanId = results[i].id;
-      const eanCode = results[i].getValue({ name: "name" });
+          try {
+            record.submitFields({
+              type: "customrecord_4ph_ean_numbers",
+              id: eanId,
+              values: { custrecord_4ph_item: "-1" },
+              options: { enableSourcing: false, ignoreMandatoryFields: true },
+            });
+            return { id: eanId, eanNumber: eanCode };
+          } catch (e) {
+            continue;
+          }
+        }
+      }
+    } else {
+      // Fallback for environments without runPaged
+      results = eanSearch.run().getRange({ start: 0, end: 1000 });
+
+      for (let i = 0; i < results.length; i++) {
+        const eanId = results[i].id;
+        const eanCode = results[i].getValue({ name: "name" });
 
       try {
         // Try to reserve EAN
@@ -142,8 +168,9 @@ define(["N/record", "N/search", "N/query"], (record, search, query) => {
         continue;
       }
     }
+    }
 
-    // If all 10 fail
+    // If no EAN could be reserved
     log.error("EAN Reservation Failed", "Could not reserve unique EAN");
     return null;
   }

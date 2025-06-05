@@ -25,8 +25,11 @@ const stubs = {
     create: (opts) => {
       capturedFilters.push(opts.filters);
       return {
-        run: () => ({
-          getRange: () => [{ id: '1', getValue: () => 'EAN1' }]
+        runPaged: () => ({
+          pageRanges: [{ index: 0 }],
+          fetch: () => ({
+            data: [{ id: '1', getValue: () => 'EAN1' }]
+          })
         })
       };
     }
