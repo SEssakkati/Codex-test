@@ -21,15 +21,14 @@ const stubs = {
   record: { submitFields: () => {} },
   search: {
     Sort: { ASC: 'ASC' },
-    createColumn: () => ({}),
+    Operator: { ISNOTEMPTY: 'isnotempty', ANYOF: 'anyof' },
+    createColumn: (opts) => opts,
+    createFilter: (opts) => opts,
     create: (opts) => {
       capturedFilters.push(opts.filters);
       return {
-        runPaged: () => ({
-          pageRanges: [{ index: 0 }],
-          fetch: () => ({
-            data: [{ id: '1', getValue: () => 'EAN1' }]
-          })
+        run: () => ({
+          getRange: () => [{ id: '1', getValue: () => 'EAN1' }]
         })
       };
     }
@@ -43,5 +42,9 @@ const second = mod.getAndReserveUniqueEAN();
 
 assert.deepStrictEqual(first, { id: '1', eanNumber: 'EAN1' });
 assert.deepStrictEqual(second, { id: '1', eanNumber: 'EAN1' });
-assert.ok(JSON.stringify(capturedFilters[0]).includes('-1'), 'search filter should include -1');
+const expectedFilters = [
+  { name: 'name', operator: 'isnotempty' },
+  { name: 'custrecord_4ph_item', operator: 'anyof', values: ['@NONE@'] }
+];
+assert.deepStrictEqual(capturedFilters[0], expectedFilters, 'search filters should match');
 console.log('getAndReserveUniqueEAN tests passed');
