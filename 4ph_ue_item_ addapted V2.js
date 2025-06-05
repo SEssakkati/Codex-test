@@ -224,7 +224,13 @@ define(["N/record", "N/search", "N/query"], (record, search, query) => {
   };
 
   if (typeof module !== "undefined" && module.exports) {
-    module.exports = { beforeLoad, afterSubmit, assignItemToEANNumber };
+    module.exports = {
+      beforeLoad,
+      afterSubmit,
+      assignItemToEANNumber,
+      setEANNumber,
+      getAndReserveUniqueEAN,
+    };
   }
   return { beforeLoad, afterSubmit };
 });
