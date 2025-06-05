@@ -17,12 +17,13 @@ define(["N/record", "N/search", "N/query"], (record, search, query) => {
   const afterSubmit = (scriptContext) => {
     try {
       var userEventType = scriptContext.UserEventType;
+      let skuNumbers = null;
 
       if ([userEventType.CREATE, userEventType.EDIT].includes(scriptContext.type)) {
         var recItem = scriptContext.newRecord;
 
         if (recItem.getValue({ fieldId: "itemid" }) == "<will be generated automatically>") {
-          var skuNumbers = createSKUNumber();
+          skuNumbers = createSKUNumber();
           record.submitFields({
             type: recItem.type,
             id: recItem.id,
@@ -34,7 +35,7 @@ define(["N/record", "N/search", "N/query"], (record, search, query) => {
         }
 
         if (recItem.getValue({ fieldId: "custitem_4ph_sku_obsequ" }) == "<will be generated automatically>") {
-          var skuNumbers = createSKUObsequNumber();
+          skuNumbers = createSKUObsequNumber();
           record.submitFields({
             type: recItem.type,
             id: recItem.id,
@@ -61,7 +62,11 @@ define(["N/record", "N/search", "N/query"], (record, search, query) => {
         newRecItemSetActive.save({ ignoreMandatoryFields: true, enableSourcing: true });
 
         const recordId = recItem.id;
-        updateSKUNumberRecords(recordId, skuNumbers);
+        if (skuNumbers) {
+          updateSKUNumberRecords(recordId, skuNumbers);
+        } else {
+          log.audit("afterSubmit::warning", "No SKU numbers were generated during the event");
+        }
         assignItemToEANNumber(recordId, eanNumber);
 
         const newRecItemSetInactive = record.load({
