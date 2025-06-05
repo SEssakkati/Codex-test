@@ -11,7 +11,9 @@ define(["N/record", "N/search", "N/query"], (record, search, query) => {
       if ([userEventType.CREATE].includes(scriptContext.type)) {
         setDefaultValues(recItem);
       }
-    } catch (e) {}
+    } catch (e) {
+      log.error("Error::beforeLoad", e);
+    }
   };
 
   const afterSubmit = (scriptContext) => {
