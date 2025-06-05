@@ -117,7 +117,7 @@ define(["N/record", "N/search", "N/query"], (record, search, query) => {
       filters: [
         ["name", "isnotempty", ""],
         "AND",
-        ["custrecord_4ph_item", "anyof", "@NONE@"],
+        ["custrecord_4ph_item", "anyof", ["@NONE@", "-1"]],
       ],
       columns: [search.createColumn({ name: "name", sort: search.Sort.ASC })],
     });
@@ -226,7 +226,7 @@ define(["N/record", "N/search", "N/query"], (record, search, query) => {
   };
 
   if (typeof module !== "undefined" && module.exports) {
-    module.exports = { beforeLoad, afterSubmit, assignItemToEANNumber };
+    module.exports = { beforeLoad, afterSubmit, assignItemToEANNumber, getAndReserveUniqueEAN };
   }
   return { beforeLoad, afterSubmit };
 });
