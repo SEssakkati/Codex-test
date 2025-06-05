@@ -62,7 +62,9 @@ define(["N/record", "N/search", "N/query"], (record, search, query) => {
 
         const recordId = recItem.id;
         updateSKUNumberRecords(recordId, skuNumbers);
-        assignItemToEANNumber(recordId, eanNumber);
+        if (eanNumber) {
+          assignItemToEANNumber(recordId, eanNumber);
+        }
 
         const newRecItemSetInactive = record.load({
           type: scriptContext.newRecord.type,
@@ -141,9 +143,10 @@ define(["N/record", "N/search", "N/query"], (record, search, query) => {
 
   function assignItemToEANNumber(itemId, eanNumber) {
     try {
+      if (!eanNumber) return;
       const result = search.create({
         type: "customrecord_4ph_ean_numbers",
-        filters: [["name", "haskeywords", eanNumber]],
+        filters: [["name", "is", eanNumber]],
         columns: ["internalid"],
       })
         .run()
@@ -213,5 +216,8 @@ define(["N/record", "N/search", "N/query"], (record, search, query) => {
     return results.length > 0 ? results[0].id : null;
   };
 
+  if (typeof module !== "undefined" && module.exports) {
+    module.exports = { beforeLoad, afterSubmit, assignItemToEANNumber };
+  }
   return { beforeLoad, afterSubmit };
 });
